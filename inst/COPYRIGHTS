@@ -1,0 +1,24 @@
+The R package cdtr is released under the MIT license (see the LICENSE file).
+
+It bundles the following third-party source code under src/CDT/:
+
+1. The 'CDT' C++ library (CDT.h, CDT.hpp, CDTUtils.h, CDTUtils.hpp, KDTree.h,
+   LocatorKDTree.h, Triangulation.h, Triangulation.hpp, portable_nth_element.hpp,
+   remove_at.hpp).
+   Source: https://github.com/artem-ogre/CDT
+   Copyright (c) 2019 Leica Geosystems Technology AB
+   Copyright (c) The CDT Contributors
+   Licensed under the Mozilla Public License, v. 2.0 (full text in
+   inst/LICENSE.CDT).
+
+   Local modification: in Triangulation.h the '#pragma GCC diagnostic'
+   push/ignored/pop around the ICallbackHandler interface was removed, and the
+   unused parameter names of its default (empty) methods are kept as comments
+   instead, so the header compiles without -Wunused-parameter warnings and
+   passes R CMD check's test for pragmas suppressing diagnostics. The class is
+   only compiled when CDT_ENABLE_CALLBACK_HANDLER is defined, which cdtr does
+   not do. No other changes to the upstream sources.
+
+2. Robust geometric predicates (predicates.h).
+   Copyright (c) 2019 William C. Lenthe
+   Licensed under a 3-clause BSD license (full text in the file header).
