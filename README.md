@@ -89,6 +89,45 @@ edge; by default it is derived from the input (a fraction of the median
 segment length, capped by the area target) so refinement does not
 cascade into sharp input corners. Pass `0` for never-give-up.
 
+### Refinement protects the constraints
+
+Refinement follows Ruppert’s algorithm: a constraint segment is split
+whenever a vertex lies inside the circle on its diameter, and this
+applies to `max_area` alone as well as to `min_angle`. So a mesh refined
+by area has more vertices along the constraints than one from a refiner
+that only splits large triangles (Triangle with `a` but no `q`, for
+example). With `max_area` set to 1/5000 of the bounding box area, on
+North Carolina’s counties and anglr’s Tasmanian cadastre and contours,
+cdtr adds 1.2 to 1.3 times as many Steiner vertices as Triangle with `a`
+alone, and 40 to 62% of them lie on the input constraints, against 11 to
+14% of Triangle’s. On the two polygon layers that buys shape: 0.1% of
+cdtr’s triangles have a minimum angle under 5 degrees on the counties,
+against 0.6% of Triangle’s, and 1.7% against 3.0% on the cadastre. On
+the contours the share is the same, 1.4%. These figures come from
+`inst/benchmarks/bench5.R`.
+
+`min_edge_length` is the control. Edges shorter than it are not split,
+so a larger value gives a coarser mesh. By default it is derived from
+the input (2.8 on the contours, where `sqrt(max_area)` is 12). On these
+three inputs a floor of `sqrt(max_area)` cuts cdtr’s Steiner vertices by
+10 to 12%, and the area target is still met everywhere on the two
+polygon layers. Raise it in steps, and check `unrefined` and the largest
+triangle area each time.
+
+## Holes as points
+
+`erase = "holes"` drops the even depths. A hole can also be given as a
+point, as the `H` of an `RTriangle::pslg()`: the region around it that
+is bounded by segments is erased, whatever its depth.
+
+``` r
+rh <- cdt_triangulate(x, y, s0, s1, holes = cbind(0.5, 0.5))
+table(rh$depth)
+#> 
+#> 1 
+#> 8
+```
+
 ## Real polygons
 
 Any polygon source reduces to the same two tables. With `sf`’s North
@@ -140,12 +179,102 @@ range(ma$PA[, "z"] - (2 * ma$P[, 1] + 3 * ma$P[, 2]))
 #> [1] -1.421085e-14  1.421085e-14
 ```
 
+## Mesh quality
+
+`cdt_quality()` gives the shape of every triangle: area, angles, edge
+lengths and radius-edge ratio.
+
+``` r
+summary(cdt_quality(m)[c("area", "min_angle", "radius_edge")])
+#>       area             min_angle       radius_edge     
+#>  Min.   :6.430e-06   Min.   : 2.546   Min.   : 0.5778  
+#>  1st Qu.:8.159e-04   1st Qu.:21.217   1st Qu.: 0.7234  
+#>  Median :2.977e-03   Median :33.813   Median : 0.8985  
+#>  Mean   :3.376e-03   Mean   :32.666   Mean   : 1.2297  
+#>  3rd Qu.:5.462e-03   3rd Qu.:43.721   3rd Qu.: 1.3816  
+#>  Max.   :9.997e-03   Max.   :59.931   Max.   :11.2560
+```
+
+## Where points fall
+
+`cdt_locate()` finds the triangle holding each query point with exact
+orientation tests, so a point on a shared edge is never lost between
+triangles. With `barycentric = TRUE` it also gives the weights of the
+triangle’s vertices at each point.
+
+``` r
+cdt_locate(m$P, m$T, c(-80, -79), c(35.5, 35.5), barycentric = TRUE)
+#>   triangle        b1        b2         b3
+#> 1     1225 0.3858433 0.5537999 0.06035678
+#> 2      379 0.1891296 0.7195179 0.09135246
+```
+
+## Where input came from
+
+`edge_sources = TRUE` returns, for every fixed edge, the input segments
+that cover it (through crossings, splits and refinement). That lets
+regions be labelled by which inputs cover them, which `depth` cannot do,
+and `cdt_winding()` uses it to give the winding number of each input
+feature in every triangle, for overlapping polygons, with no
+point-in-polygon test. See `vignette("overlay")`.
+
+## Working with polygons: wkpool and polymer
+
+The [wkpool](https://hypertidy.github.io/wkpool/) package (0.5.0 and
+later) reads any geometry that ‘wk’ handles, shares coincident vertices,
+and uses cdtr for the constrained triangulation behind `tri_overlay()`
+and `tri_overlay_relate()`. The output of `cdt_pslg()` goes straight
+into `wkpool::new_wkpool_tri()`, as shown in
+`vignette("wkpool", package = "cdtr")`. The
+[polymer](https://github.com/hypertidy/polymer) package builds
+many-layer polygon overlay on both.
+
+## Vignettes
+
+- `vignette("cdtr")`: a tour of the package.
+- `vignette("wkpool")`: polygons, triangle pools and wkpool.
+- `vignette("terrain")`: a surface from contour lines, and how triangle
+  quality relates to its error.
+- `vignette("overlay")`: overlapping inputs, `edge_sources` and
+  `cdt_winding()`.
+
 ## What this is for
 
-`cdtr` is the triangulation primitive for the hypertidy mesh packages,
-where it replaces RTriangle (Shewchuk’s Triangle, non-commercial
-licence). The `inst/benchmarks/` scripts compare the two on anglr’s
-Tasmanian contour and cadastre data; the short version is that
-constrained-only output is identical, refinement honours `max_area`
-where Triangle may give up, and Triangle’s refiner is faster per Steiner
-point.
+`cdtr` is the builds-anywhere, permissively licensed baseline of the
+hypertidy meshing stack, and the triangulation behind its polygon
+overlay tools. It has value on its own: what it adds to a triangulation
+is information about how the mesh relates to its input, namely region
+depth, vertex origin, the input segments behind every constraint edge,
+and per-feature winding.
+
+It shares a vertices, segments and triangles contract with other
+backends, so which one to use is a choice and not a rewrite. RTriangle
+(Shewchuk’s Triangle) is the established one in R, and `cdt_pslg()`
+accepts its `pslg` input as it is.
+[laridae](https://github.com/hypertidy/laridae) provides CGAL’s
+constrained triangulations and meshing, as a persistent mesh that can be
+edited and refined. Having more than one option opens up more of what
+can be done with triangulation in R.
+
+The `inst/benchmarks/` scripts compare cdtr and RTriangle on North
+Carolina’s counties and anglr’s Tasmanian cadastre, which are polygons,
+and its Tasmanian contours, which are open lines and are meshed over
+their convex hull (the scripts need anglr, which is no longer on CRAN).
+Constrained-only, the two give meshes of the same size, with the same
+largest area and smallest angle, on all three. With `max_area` both meet
+the target on the polygons. Over the hull of the contours cdtr leaves
+0.3% of triangles above it, and reports them in `unrefined` as
+`circumcenterOutside`. cdtr adds more Steiner vertices (on the contours,
+5,835 against 5,343 vertices in total), because it protects the
+constraints (see above), and reports in `unrefined` where it declined to
+refine. Its smallest angles are better on the counties but equally poor
+on the contours. Triangle is faster: about three times on the counties
+with refinement, and about one and a half times on the cadastre without
+(the timings in `bench.R`, on one machine), so it is the better choice
+if speed on a large problem matters more than the extra features.
+
+## Code of Conduct
+
+Please note that the cdtr project is released with a [Contributor Code
+of Conduct](https://hypertidy.github.io/cdtr/CODE_OF_CONDUCT.html). By
+contributing to this project, you agree to abide by its terms.

@@ -19,7 +19,9 @@ cdt_triangulate(
   erase = c("outer", "hull", "holes"),
   intersect = c("resolve", "error", "ignore"),
   angle_first = FALSE,
-  depth_distinct = FALSE
+  depth_distinct = FALSE,
+  edge_sources = FALSE,
+  holes = NULL
 )
 }
 \arguments{
@@ -38,7 +40,8 @@ shorter than this. NULL (the default) chooses a value from the input and
 the targets (see \code{\link[=default_min_edge_length]{default_min_edge_length()}}): a fraction of the median
 constraint segment length, capped so that it never blocks the \code{max_area}
 target. This stops the refiner cascading into sharp input corners. Use 0
-to never give up.}
+to never give up. A larger value gives a coarser mesh, since it also stops
+the splitting of encroached constraint segments (see Details).}
 
 \item{min_edge_frac}{fraction of the median constraint segment length used
 when \code{min_edge_length} is NULL}
@@ -49,7 +52,10 @@ when \code{min_edge_length} is NULL}
 
 \item{erase}{one of "outer" (drop triangles outside the segment-bounded region,
 as RTriangle's \code{-p} does), "hull" (keep the convex hull), "holes" (also drop
-even-depth regions). With no segments there is no boundary, so "hull" is used.}
+even-depth regions). With no segments there is no boundary, so "hull" is used.
+Note that \code{"outer"} keeps the triangles inside holes (they have even
+\code{depth}), so use \code{"holes"} when the triangles are to represent polygon
+area, for example to build a triangle pool or sum areas.}
 
 \item{intersect}{how crossing constraints are handled: "resolve" inserts the
 crossing point, "error" fails, "ignore" skips the check}
@@ -61,6 +67,17 @@ crossing point, "error" fails, "ignore" skips the check}
 counts a doubled (overlapping) boundary once rather than once per copy. The
 default \code{depth} counts per copy; the two differ only where the only path
 from outside a triangle crosses a shared, doubled boundary.}
+
+\item{edge_sources}{also return \code{edge_sources}, a data frame with one row
+per fixed edge and input segment covering it (see Value)}
+
+\item{holes}{optional hole points, a two-column matrix or a list or data
+frame with \code{x} and \code{y}. The region around each point that is bounded by
+constraint segments is erased, as with the \code{H} of an \code{RTriangle::pslg()}.
+This is in addition to \code{erase}. A point in no bounded region (outside every
+ring, or with no segments) erases nothing, and a point exactly on a segment
+is not supported. Holes are applied after the topological \code{depth} is
+computed, so \code{depth} still describes the unerased mesh.}
 }
 \value{
 list with P (vertices), T (1-based triangle indices, wound
@@ -74,10 +91,36 @@ vertex index), min_edge_length (the value used), and unrefined, a data
 frame with one row per refinement pass counting what CDT could not refine
 (short edges, sharp fixed corners, and so on). When \code{depth_distinct = TRUE}
 the list also has depth_distinct (a doubled boundary counted once).
+When \code{edge_sources = TRUE} the list also has edge_sources, a data frame
+with columns \code{edge} (row in S), \code{segment} (position of the input segment
+in \code{s0}, \code{s1}) and \code{forward} (TRUE when the input segment runs the same
+way as the S row, from its first to its second vertex). Every input
+segment covering an edge has its own row, through crossings, splits and
+refinement, so an edge shared by k input segments (duplicates included)
+has k rows. Zero-length input segments have no rows.
 }
 \description{
 Thin binding to the artem-ogre/CDT library. Input mirrors RTriangle::pslg:
 vertices as x/y and constraint segments as index pairs into the vertices.
+}
+\details{
+Refinement follows Ruppert's algorithm, which protects the constraint
+segments: a segment is split whenever a vertex lies inside the circle on its
+diameter (it is "encroached"), and this applies to refinement by \code{max_area}
+alone as well as by \code{min_angle}. A mesh refined by \code{max_area} therefore has
+more vertices along the constraints than one from a refiner that only splits
+large triangles, such as Triangle with \code{a} but no \code{q}. On North Carolina's
+counties and anglr's Tasmanian cadastre and contours, cdtr adds 1.2 to 1.3
+times as many vertices as Triangle with an area bound alone, with 40 to 62\%
+of them on the constraints against 11 to 14\%, and on the two polygon layers
+fewer triangles with a minimum angle under 5 degrees (see
+\code{inst/benchmarks/bench5.R}).
+
+\code{min_edge_length} is the control for this: edges shorter than it are not
+split. Raising it gives fewer vertices: on those inputs a floor of
+\code{sqrt(max_area)} gives 10 to 12\% fewer than the default. The \code{unrefined}
+component of the result counts what was left undone, so check it and the
+largest area after raising the floor.
 }
 \examples{
 ## unit square with a square hole: two closed rings of 4 vertices
@@ -96,6 +139,14 @@ r2 <- cdt_triangulate(x, y, s0, s1, erase = "holes",
 table(r2$origin)
 plot(r2$P, asp = 1, pch = ".")
 polygon(r2$P[t(cbind(r2$T, NA)), ], col = "grey90")
+
+## erase the region around a point instead (like RTriangle's pslg H)
+r5 <- cdt_triangulate(x, y, s0, s1, holes = cbind(0.5, 0.5))
+table(r5$depth)
+
+## which input segments make up each fixed edge
+r4 <- cdt_triangulate(x, y, s0, s1, max_area = 0.05, edge_sources = TRUE)
+head(r4$edge_sources)
 
 ## points only: Delaunay triangulation of the convex hull
 set.seed(1)

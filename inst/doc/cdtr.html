@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Getting started with cdtr</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Getting started with cdtr</h1>
+
+
+
+<p>cdtr triangulates a planar straight line graph (PSLG): vertices, and
+constraint segments given as pairs of vertex indices. It binds the
+header-only <a href="https://github.com/artem-ogre/CDT">CDT</a> C++
+library, and the result is a plain list of matrices and data frames.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(cdtr)</span></code></pre></div>
+<div id="input-and-output" class="section level2">
+<h2>Input and output</h2>
+<p>A square with a square hole is two closed rings. Vertices are
+<code>x</code> and <code>y</code>, and the segments are <code>s0</code>
+and <code>s1</code>, the 1-based start and end vertex of each.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>, <span class="fl">0.25</span>, <span class="fl">0.75</span>, <span class="fl">0.75</span>, <span class="fl">0.25</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>y <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="fl">0.25</span>, <span class="fl">0.25</span>, <span class="fl">0.75</span>, <span class="fl">0.75</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>s0 <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">8</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>s1 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">1</span>, <span class="dv">6</span>, <span class="dv">7</span>, <span class="dv">8</span>, <span class="dv">5</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>r <span class="ot">&lt;-</span> <span class="fu">cdt_triangulate</span>(x, y, s0, s1)</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="fu">names</span>(r)</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;P&quot;               &quot;T&quot;               &quot;S&quot;               &quot;depth&quot;          </span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt;  [5] &quot;n_input&quot;         &quot;n_crossing&quot;      &quot;input_map&quot;       &quot;unrefined&quot;      </span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt;  [9] &quot;min_edge_length&quot; &quot;origin&quot;</span></span></code></pre></div>
+<p>The main components are <code>P</code> (vertices, a two-column
+matrix), <code>T</code> (triangles, 1-based indices into <code>P</code>,
+wound counter-clockwise), <code>S</code> (the fixed edges) and
+<code>depth</code>. An <code>RTriangle::pslg()</code> can be passed to
+<code>cdt_pslg()</code> instead.</p>
+<p>A small plotting helper is used through this vignette.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>plot_mesh <span class="ot">&lt;-</span> <span class="cf">function</span>(m, ...) {</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  e <span class="ot">&lt;-</span> <span class="fu">cdt_edges</span>(m)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="fu">plot</span>(m<span class="sc">$</span>P, <span class="at">asp =</span> <span class="dv">1</span>, <span class="at">axes =</span> <span class="cn">FALSE</span>, <span class="at">xlab =</span> <span class="st">&quot;&quot;</span>, <span class="at">ylab =</span> <span class="st">&quot;&quot;</span>, <span class="at">pch =</span> <span class="st">&quot;.&quot;</span>, ...)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="fu">segments</span>(m<span class="sc">$</span>P[e[, <span class="dv">1</span>], <span class="dv">1</span>], m<span class="sc">$</span>P[e[, <span class="dv">1</span>], <span class="dv">2</span>], m<span class="sc">$</span>P[e[, <span class="dv">2</span>], <span class="dv">1</span>], m<span class="sc">$</span>P[e[, <span class="dv">2</span>], <span class="dv">2</span>],</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>           <span class="at">col =</span> <span class="st">&quot;grey50&quot;</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  <span class="fu">segments</span>(m<span class="sc">$</span>P[m<span class="sc">$</span>S[, <span class="dv">1</span>], <span class="dv">1</span>], m<span class="sc">$</span>P[m<span class="sc">$</span>S[, <span class="dv">1</span>], <span class="dv">2</span>], m<span class="sc">$</span>P[m<span class="sc">$</span>S[, <span class="dv">2</span>], <span class="dv">1</span>], m<span class="sc">$</span>P[m<span class="sc">$</span>S[, <span class="dv">2</span>], <span class="dv">2</span>],</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>           <span class="at">lwd =</span> <span class="dv">2</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>}</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>op <span class="ot">&lt;-</span> <span class="fu">par</span>(<span class="at">mar =</span> <span class="fu">c</span>(<span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="fl">0.5</span>))</span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="fu">plot_mesh</span>(r)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">par</span>(op)</span></code></pre></div>
+</div>
+<div id="depth-where-a-triangle-sits" class="section level2">
+<h2>Depth: where a triangle sits</h2>
+<p><code>depth</code> counts the constraint boundaries crossed
+travelling in from outside. Outside the outer ring is 0, inside it is 1,
+and the hole is 2. Nested rings alternate odd (inside) and even (hole).
+It is found from the mesh alone, with no point-in-polygon test.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">table</span>(r<span class="sc">$</span>depth)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt; 1 2 </span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; 8 2</span></span></code></pre></div>
+<p><code>erase</code> controls what is dropped. The default
+<code>&quot;outer&quot;</code> removes triangles outside the outermost boundary
+(as Triangle’s <code>-p</code> does), so <strong>hole triangles are
+kept</strong> and have even depth. <code>&quot;holes&quot;</code> also removes the
+even depths, which is what you want to get a polygon with its holes cut
+out. <code>&quot;hull&quot;</code> keeps the whole convex hull.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">sapply</span>(<span class="fu">c</span>(<span class="st">&quot;hull&quot;</span>, <span class="st">&quot;outer&quot;</span>, <span class="st">&quot;holes&quot;</span>), <span class="cf">function</span>(e) {</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  <span class="fu">nrow</span>(<span class="fu">cdt_triangulate</span>(x, y, s0, s1, <span class="at">erase =</span> e)<span class="sc">$</span>T)</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>})</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt;  hull outer holes </span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt;    10    10     8</span></span></code></pre></div>
+<p>Holes can also be given as points, as in an
+<code>RTriangle::pslg()</code>’s <code>H</code>. The region around each
+point that is bounded by segments is erased, which is useful when you
+know a point inside a hole but not the depth.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>rh <span class="ot">&lt;-</span> <span class="fu">cdt_triangulate</span>(x, y, s0, s1, <span class="at">holes =</span> <span class="fu">cbind</span>(<span class="fl">0.5</span>, <span class="fl">0.5</span>))</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">table</span>(rh<span class="sc">$</span>depth)</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt; 1 </span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; 8</span></span></code></pre></div>
+</div>
+<div id="refinement" class="section level2">
+<h2>Refinement</h2>
+<p>Ruppert refinement adds Steiner vertices to meet a maximum triangle
+area or a minimum angle.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>r2 <span class="ot">&lt;-</span> <span class="fu">cdt_triangulate</span>(x, y, s0, s1, <span class="at">max_area =</span> <span class="fl">0.01</span>, <span class="at">min_angle =</span> <span class="dv">25</span>,</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>                      <span class="at">erase =</span> <span class="st">&quot;holes&quot;</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="fu">table</span>(r2<span class="sc">$</span>origin)</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt;    input crossing  steiner </span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt;        8        0       64</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>op <span class="ot">&lt;-</span> <span class="fu">par</span>(<span class="at">mar =</span> <span class="fu">c</span>(<span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="fl">0.5</span>))</span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="fu">plot_mesh</span>(r2)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">par</span>(op)</span></code></pre></div>
+<p><code>origin</code> says where each vertex came from:
+<code>&quot;input&quot;</code>, <code>&quot;crossing&quot;</code> (added where constraints
+cross) or <code>&quot;steiner&quot;</code> (added by refinement).</p>
+<p>Refinement cannot always reach its targets, for example where two
+segments meet at a sharp angle. Instead of stopping silently, the result
+reports what was left undone in <code>unrefined</code>, and
+<code>min_edge_length</code> is the floor below which an edge is not
+split. By default it is derived from the input; use
+<code>min_edge_length = 0</code> to never give up.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>r2<span class="sc">$</span>min_edge_length</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">#&gt; [1] 0.025</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>r2<span class="sc">$</span>unrefined</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt;   criterion shortEdgeTriangles circumcenterOutside circumcenterOnVertex</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt; 1      area                  0                   0                    0</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt; 2     angle                  0                   0                    0</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt;   sharpFixedCorner shortEdges splitVertexInvalid</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; 1                0          0                  0</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; 2                0          0                  0</span></span></code></pre></div>
+</div>
+<div id="crossing-constraints" class="section level2">
+<h2>Crossing constraints</h2>
+<p>Segments that cross are split at the crossing by default
+(<code>intersect = &quot;resolve&quot;</code>), and the new vertex has origin
+<code>&quot;crossing&quot;</code>.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>xc <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>yc <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>rc <span class="ot">&lt;-</span> <span class="fu">cdt_triangulate</span>(xc, yc, <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">3</span>), <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">4</span>))</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>rc<span class="sc">$</span>origin</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">#&gt; [1] input    input    input    input    crossing</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">#&gt; Levels: input crossing steiner</span></span></code></pre></div>
+<p><code>intersect = &quot;error&quot;</code> fails instead, and
+<code>&quot;ignore&quot;</code> skips the check.</p>
+</div>
+<div id="which-input-made-each-edge" class="section level2">
+<h2>Which input made each edge</h2>
+<p>With <code>edge_sources = TRUE</code> the result has a data frame
+with a row for every input segment that covers each fixed edge, tracked
+through crossings, splits and refinement. This allows regions to be
+labelled by <em>which inputs</em> cover them, which <code>depth</code>
+cannot do. Here two overlapping squares are triangulated together.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>xs <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">3</span>, <span class="dv">1</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>ys <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">3</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>rs <span class="ot">&lt;-</span> <span class="fu">cdt_triangulate</span>(xs, ys, <span class="dv">1</span><span class="sc">:</span><span class="dv">8</span>, <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">1</span>, <span class="dv">6</span>, <span class="dv">7</span>, <span class="dv">8</span>, <span class="dv">5</span>),</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>                      <span class="at">edge_sources =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="fu">head</span>(rs<span class="sc">$</span>edge_sources)</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co">#&gt;   edge segment forward</span></span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#&gt; 1    1       4   FALSE</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="co">#&gt; 2    2       2    TRUE</span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt; 3    3       8   FALSE</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#&gt; 4    4       5   FALSE</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt; 5    5       1    TRUE</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co">#&gt; 6    6       5    TRUE</span></span></code></pre></div>
+<p><code>segment</code> is the position of the input segment,
+<code>edge</code> the row of <code>S</code>, and <code>forward</code>
+whether they run the same way. An edge shared by k input segments,
+duplicates included, has k rows.</p>
+</div>
+<div id="locating-and-interpolating" class="section level2">
+<h2>Locating and interpolating</h2>
+<p><code>cdt_locate()</code> returns the triangle containing each query
+point, using exact orientation tests so a point on a shared edge is
+never lost between triangles. A point on an edge goes to the lowest
+triangle index, and a point outside the mesh is <code>NA</code>. With a
+triangle-to-feature table this is point-in-polygon for many points.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>q <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.5</span>, <span class="fl">0.9</span>, <span class="dv">2</span>), <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.5</span>, <span class="fl">0.9</span>, <span class="dv">2</span>))</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">cdt_locate</span>(r2<span class="sc">$</span>P, r2<span class="sc">$</span>T, q[, <span class="dv">1</span>], q[, <span class="dv">2</span>])</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co">#&gt; [1]  4 NA 36 NA</span></span></code></pre></div>
+<p>Values carried on vertices are interpolated linearly
+(barycentrically) with <code>cdt_interpolate()</code>.
+<code>cdt_triangulate_attr()</code> does this for you, giving Steiner
+vertices values from the unrefined triangulation.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>ra <span class="ot">&lt;-</span> <span class="fu">cdt_triangulate_attr</span>(x, y, s0, s1, <span class="at">PA =</span> <span class="fu">cbind</span>(<span class="at">z =</span> <span class="dv">10</span> <span class="sc">*</span> x),</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>                           <span class="at">max_area =</span> <span class="fl">0.02</span>, <span class="at">erase =</span> <span class="st">&quot;holes&quot;</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="fu">all.equal</span>(ra<span class="sc">$</span>PA[, <span class="st">&quot;z&quot;</span>], <span class="dv">10</span> <span class="sc">*</span> ra<span class="sc">$</span>P[, <span class="dv">1</span>])</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>See <code>vignette(&quot;wkpool&quot;, package = &quot;cdtr&quot;)</code> for using cdtr
+with polygons from any source.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

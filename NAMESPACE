@@ -2,8 +2,11 @@
 
 export(cdt_edges)
 export(cdt_interpolate)
+export(cdt_locate)
 export(cdt_pslg)
+export(cdt_quality)
 export(cdt_triangulate)
 export(cdt_triangulate_attr)
+export(cdt_winding)
 export(default_min_edge_length)
 useDynLib(cdtr, .registration = TRUE)

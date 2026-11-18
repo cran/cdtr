@@ -2,7 +2,9 @@
 // Aimed at replacing RTriangle in hypertidy/anglr.
 #include <cpp11.hpp>
 #include <cpp11/matrix.hpp>
+#include <algorithm>
 #include <limits>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "CDT/CDT.h"
@@ -21,6 +23,52 @@ writable::integers unrefined_counts(const CDT::Unrefined& u) {
   return out;
 }
 
+// Triangles reachable from each hole point without crossing a fixed edge,
+// added to `erase`. Like Triangle's hole points: the region bounded by
+// segments around the point is eaten. A hole whose region reaches the
+// super-triangle is not bounded by segments, so it adds nothing.
+void add_hole_regions(const CDT::Triangulation<double>& cdt, doubles hx, doubles hy,
+                      CDT::TriIndUSet& erase) {
+  const std::size_t nt = cdt.triangles.size();
+  for (R_xlen_t h = 0; h < hx.size(); ++h) {
+    const double qx = hx[h], qy = hy[h];
+    std::size_t seed = nt;
+    for (std::size_t t = 0; t < nt && seed == nt; ++t) {
+      const CDT::Triangle& tr = cdt.triangles[t];
+      bool inside = true;
+      for (int k = 0; k < 3 && inside; ++k) {
+        const CDT::V2d<double>& a = cdt.vertices[tr.vertices[k]];
+        const CDT::V2d<double>& b = cdt.vertices[tr.vertices[(k + 1) % 3]];
+        if (predicates::orient2d(a.x, a.y, b.x, b.y, qx, qy) < 0) inside = false;
+      }
+      if (inside) seed = t;
+    }
+    if (seed == nt) continue;
+    CDT::TriIndUSet seen;
+    std::vector<CDT::TriInd> stack(1, static_cast<CDT::TriInd>(seed));
+    seen.insert(stack[0]);
+    bool unbounded = false;
+    while (!stack.empty() && !unbounded) {
+      const CDT::TriInd t = stack.back();
+      stack.pop_back();
+      const CDT::Triangle& tr = cdt.triangles[t];
+      for (int k = 0; k < 3; ++k) {
+        if (tr.vertices[k] < CDT::nSuperTriVerts) { unbounded = true; break; }
+      }
+      if (unbounded) break;
+      for (int k = 0; k < 3; ++k) {
+        const CDT::TriInd nb = tr.neighbors[k];
+        if (nb == CDT::noNeighbor || seen.count(nb)) continue;
+        const CDT::Edge e(tr.vertices[k], tr.vertices[(k + 1) % 3]);
+        if (cdt.fixedEdges.count(e)) continue;
+        seen.insert(nb);
+        stack.push_back(nb);
+      }
+    }
+    if (!unbounded) erase.insert(seen.begin(), seen.end());
+  }
+}
+
 } // namespace
 
 [[cpp11::register]]
@@ -28,7 +76,9 @@ list cdt_triangulate_cpp(doubles x, doubles y, integers s0, integers s1,
                          double max_area, double min_angle_deg,
                          int max_steiner, double min_edge_length,
                          bool conforming, int erase_mode, int intersect_mode,
-                         bool angle_first, bool want_depth_distinct) {
+                         bool angle_first, bool want_depth_distinct,
+                         bool want_edge_sources,
+                         doubles hole_x, doubles hole_y) {
   // erase_mode: 0 = convex hull, 1 = outer (RTriangle -p semantics), 2 = outer + holes
   // intersect_mode: 0 = NotAllowed, 1 = TryResolve, 2 = DontCheck
   const R_xlen_t n = x.size();
@@ -63,6 +113,29 @@ list cdt_triangulate_cpp(doubles x, doubles y, integers s0, integers s1,
   }
   const int n_crossing = static_cast<int>(cdt.vertices.size() - nv_after_insert);
 
+  // Edge provenance: which input segments cover each fixed edge. CDT records
+  // the originals of a fixed edge in pieceToOriginals only when the edge is
+  // not itself an input edge, so an input edge that is also covered by a
+  // longer collinear input edge lists only the longer one; and if that piece
+  // is later split by refinement, the shorter input is lost. Adding the edge
+  // itself to its own originals before refinement keeps every input.
+  std::unordered_map<CDT::Edge, std::vector<int> > input_of;
+  if (want_edge_sources) {
+    for (std::size_t i = 0; i < edges.size(); ++i) {
+      if (edges[i].v1() != edges[i].v2()) input_of[edges[i]].push_back((int)i);
+    }
+    for (CDT::EdgeUSet::const_iterator e = cdt.fixedEdges.begin(); e != cdt.fixedEdges.end(); ++e) {
+      std::unordered_map<CDT::Edge, CDT::EdgeVec>::iterator it = cdt.pieceToOriginals.find(*e);
+      if (it == cdt.pieceToOriginals.end()) continue;
+      const CDT::Edge self(CDT::VertInd(e->v1() - CDT::nSuperTriVerts),
+                           CDT::VertInd(e->v2() - CDT::nSuperTriVerts));
+      if (input_of.count(self) &&
+          std::find(it->second.begin(), it->second.end(), *e) == it->second.end()) {
+        it->second.push_back(*e);
+      }
+    }
+  }
+
   // Region classification before anything is erased: layer depth is the
   // number of constraint boundaries crossed from the outside (0 = outside,
   // odd = inside, even > 0 = hole), computed topologically.
@@ -74,6 +147,7 @@ list cdt_triangulate_cpp(doubles x, doubles y, integers s0, integers s1,
   if (erase_mode == 1) to_erase = cdt.collectOuterTriangles();
   else if (erase_mode == 2) to_erase = cdt.collectOuterTrianglesAndHoles();
   else to_erase = cdt.collectSuperTriangle();
+  if (hole_x.size() > 0) add_hole_regions(cdt, hole_x, hole_y, to_erase);
 
   writable::list unrefined;
   if (max_area > 0 || min_angle_deg > 0) {
@@ -148,6 +222,38 @@ list cdt_triangulate_cpp(doubles x, doubles y, integers s0, integers s1,
     S(k, 1) = static_cast<int>(e->v2()) + 1;
   }
 
+  // One row per (fixed edge, covering input segment). `forward` is TRUE when
+  // the input segment runs the same way as the edge as listed in S.
+  writable::integers es_edge, es_segment;
+  writable::logicals es_forward;
+  if (want_edge_sources) {
+    k = 0;
+    for (CDT::EdgeUSet::const_iterator e = cdt.fixedEdges.begin(); e != cdt.fixedEdges.end(); ++e, ++k) {
+      CDT::EdgeVec originals;
+      std::unordered_map<CDT::Edge, CDT::EdgeVec>::const_iterator it = cdt.pieceToOriginals.find(*e);
+      if (it != cdt.pieceToOriginals.end()) originals = it->second;
+      if (std::find(originals.begin(), originals.end(), *e) == originals.end() && input_of.count(*e)) {
+        originals.push_back(*e);
+      }
+      const double dx = cdt.vertices[e->v2()].x - cdt.vertices[e->v1()].x;
+      const double dy = cdt.vertices[e->v2()].y - cdt.vertices[e->v1()].y;
+      for (std::size_t j = 0; j < originals.size(); ++j) {
+        std::unordered_map<CDT::Edge, std::vector<int> >::const_iterator in = input_of.find(originals[j]);
+        if (in == input_of.end()) continue;
+        for (std::size_t m = 0; m < in->second.size(); ++m) {
+          const int seg = in->second[m];
+          const CDT::VertInd a = dup.mapping[s0[seg]];
+          const CDT::VertInd b = dup.mapping[s1[seg]];
+          const double ox = cdt.vertices[b].x - cdt.vertices[a].x;
+          const double oy = cdt.vertices[b].y - cdt.vertices[a].y;
+          es_edge.push_back(k + 1);
+          es_segment.push_back(seg + 1);
+          es_forward.push_back(dx * ox + dy * oy > 0 ? TRUE : FALSE);
+        }
+      }
+    }
+  }
+
   writable::integers dup_map(dup.mapping.size());
   for (std::size_t i = 0; i < dup.mapping.size(); ++i) dup_map[i] = (int)dup.mapping[i] + 1;
 
@@ -169,6 +275,12 @@ list cdt_triangulate_cpp(doubles x, doubles y, integers s0, integers s1,
     for (std::size_t i = 0; i < kept_depth_distinct.size(); ++i)
       depth_distinct[i] = kept_depth_distinct[i];
     out.push_back({"depth_distinct"_nm = depth_distinct});
+  }
+
+  if (want_edge_sources) {
+    writable::list es({"edge"_nm = es_edge, "segment"_nm = es_segment,
+                       "forward"_nm = es_forward});
+    out.push_back({"edge_sources"_nm = es});
   }
 
   return out;
